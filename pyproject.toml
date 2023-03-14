@@ -1,0 +1,18 @@
+[build-system]
+requires = ["flit_core >=3.2,<4"]
+build-backend = "flit_core.buildapi"
+
+[project]
+name = "visium_stitcher"
+authors = [{name = "Nadav Yayon, Krzysztof Polanski, Valentina Lorenzi", email = "kp9@sanger.ac.uk"}]
+license = {file = "LICENSE"}
+classifiers = ["License :: OSI Approved :: MIT License"]
+dynamic = ["version", "description"]
+dependencies = [
+    "scipy>=1.6.0",
+    "numpy",
+    "xmltodict",
+    "opencv-python",
+    "anndata"
+]
+requires-python = ">=3.7"
