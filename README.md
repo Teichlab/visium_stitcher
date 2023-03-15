@@ -4,7 +4,7 @@ The repository houses a rudimentary implementation of the Visium stitcher, allow
 
 Currently the joint image is dictated by the order of the objects passed to the function. Eventually this will be refined to be based on spot coordinates instead.
 
-Please refer to the [example notebook](notebooks/demo.ipynb) for exact Fiji instructions and a subsequent Python demonstration. The demo data can be found at `/lustre/scratch126/cellgen/team205/kp9/jupyter/ny1/23-03-06-stitcher/visium_stitcher/rawdata`.
+Please refer to the [example notebook](notebooks/demo.ipynb) for exact Fiji instructions and a subsequent Python demonstration. The demo data can be found at `/lustre/scratch126/cellgen/team205/kp9/jupyter/ny1/23-03-06-stitcher/rawdata`.
 
 ## Installation
 
