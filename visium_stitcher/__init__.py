@@ -1,5 +1,6 @@
 """Stitch multiple Visium slides together"""
 
+from matplotlib.image import imread
 from scipy.spatial import cKDTree
 import xmltodict
 import anndata as ad
@@ -24,7 +25,7 @@ def transform_finder(xmlpath, field="@file_path"):
         transforms[entry[field]] = transform_matrix
     return transforms
 
-def stitch(adatas, dist_fact = 1.5):
+def stitch(adatas, image=None, dist_fact = 1.5):
     #STEP ONE - transform the spots, determine overlaps based on sample order, infer canvas size
     adata = None
     canvas = np.array([0,0])
@@ -78,23 +79,39 @@ def stitch(adatas, dist_fact = 1.5):
             #join objects
             adata = ad.concat([adata, sample])
     #STEP TWO - transform the image and paste it together, using sample order as priority
-    #TODO: ny1 is smart image guy and will determine better delineation between the images based on spots used
-    img = None
-    #the identified canvas size needs to be turned to integers, and reversed
-    #that's how warpAffine() likes its dimensions, the other way around to what we did
-    img_size = canvas.astype(int)[::-1]
+    #well, unless the user just gives us an image on input.
+    if image is not None:
+        img = imread(image)
+    else:
+        img = None
+        #the identified canvas size needs to be turned to integers, and reversed
+        #that's how warpAffine() likes its dimensions, the other way around to what we did
+        img_size = canvas.astype(int)[::-1]
 
-    #image stuff
-    for obj in adatas:
-        #transform the image
-        imgt = cv2.warpAffine(list(obj.uns['spatial'].values())[0]['images']['hires'],obj.uns['transform'], img_size)
-        #fill in all-black (empty) areas on the glued together image
-        if img is None:
-            img = imgt.copy()
-        else:
-            #this masks the entries in the array based on the sum of the colour axis
-            #it gets all the coordinates right, and then gets all the colour values for them
-            img[np.sum(img, axis=2)==0] = imgt[np.sum(img, axis=2)==0]
+        #image stuff
+        for obj in adatas:
+            #mask the non-spot area with zeroes. extract the image
+            simg = list(obj.uns['spatial'].values())[0]['images']['hires'].copy()
+            #get the size factor
+            sf = list(obj.uns['spatial'].values())[0]['scalefactors']['tissue_hires_scalef']
+            #get the box defined by the minimum/maximum coordinates of the spots
+            #these are pre-transformation, multiply them by the size factor
+            mins = np.floor(np.min(obj.obsm['spatial'], axis=0)[::-1] * sf).astype(int)
+            maxes = np.ceil(np.max(obj.obsm['spatial'], axis=0)[::-1] * sf).astype(int)
+            #now we can mask the image
+            simg[:mins[0], :, :] = 0
+            simg[:, :mins[1], :] = 0
+            simg[maxes[0]:, :, :] = 0
+            simg[:, maxes[1]:, :] = 0
+            #transform the image
+            imgt = cv2.warpAffine(simg,obj.uns['transform'], img_size)
+            #fill in all-black (empty) areas on the glued together image
+            if img is None:
+                img = imgt.copy()
+            else:
+                #this masks the entries in the array based on the sum of the colour axis
+                #it gets all the coordinates right, and then gets all the colour values for them
+                img[np.sum(img, axis=2)==0] = imgt[np.sum(img, axis=2)==0]
     #STEP THREE - populate the resulting object's .uns['spatial'] so it can be used for things
     adata.uns['spatial'] = dict()
     library_id = "joint"
