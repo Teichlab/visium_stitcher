@@ -94,10 +94,14 @@ def stitch(adatas, image=None, dist_fact = 1.5):
             simg = list(obj.uns['spatial'].values())[0]['images']['hires'].copy()
             #get the size factor
             sf = list(obj.uns['spatial'].values())[0]['scalefactors']['tissue_hires_scalef']
+            #get the radius of the spots - there's a diameter
+            #halve it and scale it by the size factor
+            sr = np.ceil(list(obj.uns['spatial'].values())[0]['scalefactors']['spot_diameter_fullres']*0.5*sf).astype(int)
             #get the box defined by the minimum/maximum coordinates of the spots
             #these are pre-transformation, multiply them by the size factor
-            mins = np.floor(np.min(obj.obsm['spatial'], axis=0)[::-1] * sf).astype(int)
-            maxes = np.ceil(np.max(obj.obsm['spatial'], axis=0)[::-1] * sf).astype(int)
+            #and then account for the spot radius
+            mins = np.floor(np.min(obj.obsm['spatial'], axis=0)[::-1] * sf).astype(int) - sr
+            maxes = np.ceil(np.max(obj.obsm['spatial'], axis=0)[::-1] * sf).astype(int) + sr
             #now we can mask the image
             simg[:mins[0], :, :] = 0
             simg[:, :mins[1], :] = 0
