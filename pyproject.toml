@@ -12,6 +12,7 @@ dependencies = [
     "scipy>=1.6.0",
     "numpy",
     "xmltodict",
+    "matplotlib",
     "opencv-python",
     "anndata"
 ]
