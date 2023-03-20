@@ -1,4 +1,5 @@
 """Stitch multiple Visium slides together"""
+__version__ = "0.0.2"
 
 from matplotlib.image import imread
 from scipy.spatial import cKDTree
@@ -6,8 +7,6 @@ import xmltodict
 import anndata as ad
 import numpy as np
 import cv2
-
-__version__ = "0.0.1"
 
 def transform_finder(xmlpath, field="@file_path"):
     #get the XML
@@ -50,7 +49,8 @@ def stitch(adatas, image=None, dist_fact = 1.5):
         #perform a dummy transformation - just the corners of the image
         #to get a feel for canvas size for image merging later
         shape = list(sample.uns['spatial'].values())[0]['images']['hires'].shape[:2]
-        dummy = np.array([[0,0,1],[shape[0],0,1],[0,shape[1],1],[shape[0],shape[1],1]])
+        #the shape needs to be reversed here so the transform works like it did for the spots
+        dummy = np.array([[0,0,1],[shape[1],0,1],[0,shape[0],1],[shape[1],shape[0],1]])
         edges = np.matmul(dummy, Mt)
         #get the maximum encountered coordinates, doing a ceiling of the spot locations
         canvas = np.maximum(canvas, np.max(np.ceil(edges[:,:2]), axis=0))
@@ -84,9 +84,10 @@ def stitch(adatas, image=None, dist_fact = 1.5):
         img = imread(image)
     else:
         img = None
-        #the identified canvas size needs to be turned to integers, and reversed
-        #that's how warpAffine() likes its dimensions, the other way around to what we did
-        img_size = canvas.astype(int)[::-1]
+        #the identified canvas size needs to be turned to integers
+        #warpAffine expects it in cols,rows order, which we already have
+        #as we reversed it earlier to match the spot dimensions and get transformed the same
+        img_size = canvas.astype(int)
 
         #image stuff
         for obj in adatas:
