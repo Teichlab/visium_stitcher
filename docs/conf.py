@@ -18,7 +18,7 @@ autodoc_mock_imports = ['matplotlib.image', 'scipy.spatial', 'xmltodict', 'annda
 project = 'Visium stitcher'
 copyright = '2023, Nadav Yayon, Krzysztof Polanski, Valentina Lorenzi'
 author = 'Nadav Yayon, Krzysztof Polanski, Valentina Lorenzi'
-release = '0.0.2'
+release = '0.0.3'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration

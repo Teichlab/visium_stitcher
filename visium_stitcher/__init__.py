@@ -1,5 +1,5 @@
 """Stitch multiple Visium slides together"""
-__version__ = "0.0.2"
+__version__ = "0.0.3"
 
 from matplotlib.image import imread
 from scipy.spatial import cKDTree
