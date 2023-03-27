@@ -6,6 +6,7 @@ build-backend = "flit_core.buildapi"
 name = "visium_stitcher"
 authors = [{name = "Nadav Yayon, Krzysztof Polanski, Valentina Lorenzi", email = "kp9@sanger.ac.uk"}]
 license = {file = "LICENSE"}
+readme = {file = "README.md", content-type="text/markdown"}
 classifiers = ["License :: OSI Approved :: MIT License"]
 dynamic = ["version", "description"]
 dependencies = [
@@ -20,3 +21,4 @@ requires-python = ">=3.7"
 
 [project.urls]
 Home = "https://github.com/Teichlab/visium_stitcher"
+Documentation = "https://visium-stitcher.readthedocs.io/en/latest/"
