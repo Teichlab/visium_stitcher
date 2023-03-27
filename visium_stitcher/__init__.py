@@ -9,6 +9,22 @@ import numpy as np
 import cv2
 
 def transform_finder(xmlpath, field="@file_path"):
+    '''
+    Load affine transformation matrices from a TrakEM2 XML file. Returns a dictionary 
+    with the values of the specified field (to help determine which sample/image the 
+    transform corresponds to) as the keys, and their corresponding transforms as the 
+    values. Store the matrices in  ``.uns['transform']`` of the appropriate slide's 
+    ``AnnData`` prior to calling ``visium_stitcher.stitch()``.
+    
+    Input
+    -----
+    xmlpath : ``filename``
+        XML output of aligning the Visium hires images within TrakEM2.
+    field : ``str``, optional (default: ``"@file_path"``)
+        The XML field to be used to label the individual layers in the transform 
+        dictionary. The default is ``"@file_path"``, the path to each input image provided 
+        to TrakEM2. Another possibility is ``"@title"``, storing the layer name.
+    '''
     #get the XML
     with open(xmlpath, "r") as fid:
         #this gobbles the whole file, which is what xmltodict wants on input
@@ -25,6 +41,31 @@ def transform_finder(xmlpath, field="@file_path"):
     return transforms
 
 def stitch(adatas, image=None, dist_fact = 1.5):
+    '''
+    Perform a series of affine transformations on individual Visium sample images/spot 
+    coordinates, then merge them into a single multi-sample ``AnnData``. The output object 
+    has the merged ``hires`` image stored in ``.uns['spatial']['joint']``, with the scale 
+    factors factored into each sample's spot coordinates and set to 1 in the object. The 
+    spot diameter is derived from the first object, and multiplied by the corresponding 
+    scale factor.
+    
+    Input
+    -----
+    adatas : list of ``AnnData``
+        Must have a 2x3 affine transformation matrix, as defined `here
+		<https://theailearner.com/tag/cv2-warpaffine/>`_ 
+		stored in ``.uns['transform']``. The raw feature count matrix should be loaded for 
+		accurate overlap evaluation. The samples will be given image/spot priority based 
+		on the order of the objects in the list.
+	image : ``filepath``, optional (Default: ``None``)
+	    Optional path to previously prepared overlapped tissue image to use in the merged 
+	    object.
+	dist_fact : ``float``, optional (Default: 1.5)
+	    For the first object in the list, ``med_dist`` is defined as the median of the 
+	    distances between each spot and its closest neighbour. For subsequent samples, 
+	    spots that fall within ``dist_fact*med_dist`` of a prior non-overlapping spot are 
+	    deemed to be overlap.
+    '''
     #STEP ONE - transform the spots, determine overlaps based on sample order, infer canvas size
     adata = None
     canvas = np.array([0,0])
@@ -38,22 +79,24 @@ def stitch(adatas, image=None, dist_fact = 1.5):
         #extract the scale factor for the hires image, and get scaled coordinates of the spots
         scalef = list(sample.uns['spatial'].values())[0]['scalefactors']["tissue_hires_scalef"]
         spatial_scaled = sample.obsm["spatial"]*scalef
-        #add an extra column of ones so that the transformation works
-        #transformation details fuzzy as this is ny1 derived
-        spatial_scaled_ones = np.hstack((spatial_scaled, np.ones((spatial_scaled.shape[0],1))))
-        #prepare the transformation matrix (again with some extra stuff) and transform the coordinates
-        Mt = np.hstack((sample.uns['transform'].T, np.array([0,0,1])[:,None]))
-        spatial_transformed = np.matmul(spatial_scaled_ones, Mt)
-        #stash the coordinates, losing the placeholder column of ones again
-        sample.obsm['spatial'] = spatial_transformed[:,:2]
-        #perform a dummy transformation - just the corners of the image
+        #transform spots, matching cv2.warpAffine() logic
+        #https://theailearner.com/tag/cv2-warpaffine/
+        #add an extra column of ones, and transpose the coordinates to match the example
+        #spatial[:,0] is columns(x) and spatial[:,1] is rows(y)
+        spatial_scaled_ones = np.hstack((spatial_scaled, np.ones((spatial_scaled.shape[0],1)))).T
+        #transform the coordinates, then transpose them to match obsm orientation
+        sample.obsm['spatial'] = np.matmul(sample.uns['transform'], spatial_scaled_ones).T
+        #perform a second transformation - just the corners of the image
         #to get a feel for canvas size for image merging later
         shape = list(sample.uns['spatial'].values())[0]['images']['hires'].shape[:2]
-        #the shape needs to be reversed here so the transform works like it did for the spots
-        dummy = np.array([[0,0,1],[shape[1],0,1],[0,shape[0],1],[shape[1],shape[0],1]])
-        edges = np.matmul(dummy, Mt)
+        #the four corners are defined like so (and then transposed)
+        #shape[0] is rows(y) and shape[1] is columns(x), so have to reverse them
+        #to match the [x,y,1] orientation in the example
+        dummy = np.array([[0,0,1],[shape[1],0,1],[0,shape[0],1],[shape[1],shape[0],1]]).T
+        #transform the corners, then transpose to match obsm orientation again
+        edges = np.matmul(sample.uns['transform'], dummy).T
         #get the maximum encountered coordinates, doing a ceiling of the spot locations
-        canvas = np.maximum(canvas, np.max(np.ceil(edges[:,:2]), axis=0))
+        canvas = np.maximum(canvas, np.max(np.ceil(edges), axis=0))
         #spot overlap, then stick the objects together
         if adata is None:
             #no prior spots. we are the starting main spots
@@ -63,7 +106,8 @@ def stitch(adatas, image=None, dist_fact = 1.5):
             ckdout = ckd.query(x=main_spots, k=2, workers=-1)
             #the distances are the first element of this tuple
             #we want the median distance to the second neighbour, as each spot is going to find itself as the closest
-            spot_dist = dist_fact * np.median(ckdout[0][:,1])
+            med_dist = np.median(ckdout[0][:,1])
+            spot_dist = dist_fact * med_dist
             #stash single sample object as starting point. we have no overlaps here
             sample.obs["overlap"] = False
             adata = sample.copy()
@@ -85,8 +129,7 @@ def stitch(adatas, image=None, dist_fact = 1.5):
     else:
         img = None
         #the identified canvas size needs to be turned to integers
-        #warpAffine expects it in cols,rows order, which we already have
-        #as we reversed it earlier to match the spot dimensions and get transformed the same
+        #warpAffine expects it in cols(x),rows(y) order, which we already have
         img_size = canvas.astype(int)
 
         #image stuff
@@ -99,6 +142,7 @@ def stitch(adatas, image=None, dist_fact = 1.5):
             #halve it and scale it by the size factor
             sr = np.ceil(list(obj.uns['spatial'].values())[0]['scalefactors']['spot_diameter_fullres']*0.5*sf).astype(int)
             #get the box defined by the minimum/maximum coordinates of the spots
+            #(don't forget to reverse as spots are x,y while the image array is y,x)
             #these are pre-transformation, multiply them by the size factor
             #and then account for the spot radius
             mins = np.floor(np.min(obj.obsm['spatial'], axis=0)[::-1] * sf).astype(int) - sr
