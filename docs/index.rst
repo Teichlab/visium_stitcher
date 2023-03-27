@@ -4,7 +4,7 @@
    contain the root `toctree` directive.
 
 Welcome to Visium stitcher's documentation!
-=====================================
+===========================================
 
 .. automodule:: visium_stitcher
    :members:  stitch, transform_finder
