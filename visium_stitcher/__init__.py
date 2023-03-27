@@ -52,8 +52,7 @@ def stitch(adatas, image=None, dist_fact = 1.5):
     Input
     -----
     adatas : list of ``AnnData``
-        Must have a 2x3 affine transformation matrix, as defined `here
-		<https://theailearner.com/tag/cv2-warpaffine/>`_, 
+        Must have a 2x3 affine transformation matrix, as defined `here <https://theailearner.com/tag/cv2-warpaffine/>`_, 
 		stored in ``.uns['transform']``. The raw feature count matrix should be loaded for 
 		accurate overlap evaluation. The samples will be given image/spot priority based 
 		on the order of the objects in the list.
