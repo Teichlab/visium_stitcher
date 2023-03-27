@@ -53,17 +53,17 @@ def stitch(adatas, image=None, dist_fact = 1.5):
     -----
     adatas : list of ``AnnData``
         Must have a 2x3 affine transformation matrix, as defined `here <https://theailearner.com/tag/cv2-warpaffine/>`_, 
-		stored in ``.uns['transform']``. The raw feature count matrix should be loaded for 
-		accurate overlap evaluation. The samples will be given image/spot priority based 
-		on the order of the objects in the list.
-	image : ``filepath``, optional (Default: ``None``)
-	    Optional path to previously prepared overlapped tissue image to use in the merged 
-	    object.
-	dist_fact : ``float``, optional (Default: 1.5)
-	    For the first object in the list, ``med_dist`` is defined as the median of the 
-	    distances between each spot and its closest neighbour. For subsequent samples, 
-	    spots that fall within ``dist_fact*med_dist`` of a prior non-overlapping spot are 
-	    deemed to be overlap.
+        stored in ``.uns['transform']``. The raw feature count matrix should be loaded for 
+        accurate overlap evaluation. The samples will be given image/spot priority based 
+        on the order of the objects in the list.
+    image : ``filepath``, optional (Default: ``None``)
+        Optional path to previously prepared overlapped tissue image to use in the merged 
+        object.
+    dist_fact : ``float``, optional (Default: 1.5)
+        For the first object in the list, ``med_dist`` is defined as the median of the 
+        distances between each spot and its closest neighbour. For subsequent samples, 
+        spots that fall within ``dist_fact*med_dist`` of a prior non-overlapping spot are 
+        deemed to be overlap.
     '''
     #STEP ONE - transform the spots, determine overlaps based on sample order, infer canvas size
     adata = None
