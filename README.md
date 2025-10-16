@@ -17,14 +17,16 @@ The function docstrings are provided on [ReadTheDocs](https://visium-stitcher.re
 
 ## Citation
 
-Please cite our [preprint](https://www.biorxiv.org/content/10.1101/2022.04.27.489800v1.abstract)
+Please cite our [paper](https://www.nature.com/articles/s41586-023-06806-x)
 ```
-@article{zhang2022human,
+@article{zhang2024human,
   title={A human embryonic limb cell atlas resolved in space and time},
-  author={Zhang, Bao and He, Peng and Lawrence, John E and Wang, Shuaiyu and Tuck, Elizabeth and Williams, Brian A and Roberts, Kenny and Kleshchevnikov, Vitalii and Mamanova, Lira and Bolt, Liam and others},
-  journal={bioRxiv},
-  pages={2022--04},
-  year={2022},
-  publisher={Cold Spring Harbor Laboratory}
+  author={Zhang, Bao and He, Peng and Lawrence, John EG and Wang, Shuaiyu and Tuck, Elizabeth and Williams, Brian A and Roberts, Kenny and Kleshchevnikov, Vitalii and Mamanova, Lira and Bolt, Liam and others},
+  journal={Nature},
+  volume={635},
+  number={8039},
+  pages={668--678},
+  year={2024},
+  publisher={Nature Publishing Group UK London}
 }
 ```
